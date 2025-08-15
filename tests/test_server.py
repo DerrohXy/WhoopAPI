@@ -1,6 +1,6 @@
 import unittest
 
-from src.utilities import WebServer
+# from src.utilities import WebServer
 
 
 class TestRequestHandling(unittest.TestCase):

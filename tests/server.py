@@ -26,7 +26,16 @@ class IndexHandler(RequestHandler):
         response.set_header(
             CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
         )
-        response.set_body("This is the index page.")
+        response.set_json(
+            {
+                "message": "This is the index page",
+                "path": request.path,
+                "params": request.query_params,
+                "protocol": request.protocol,
+                "method": request.method,
+                "host": request.host,
+            }
+        )
 
         return response
 
@@ -37,7 +46,16 @@ class RandomHandler(RequestHandler):
         response.set_header(
             CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
         )
-        response.set_body("This is a random page.")
+        response.set_json(
+            {
+                "message": "This is the index page",
+                "path": request.path,
+                "params": request.query_params,
+                "protocol": request.protocol,
+                "method": request.method,
+                "host": request.host,
+            }
+        )
 
         return response
 

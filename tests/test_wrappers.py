@@ -1,6 +1,6 @@
 import unittest
 
-from src.wrappers import HttpRequest, HttpResponse
+# from src.wrappers import HttpRequest, HttpResponse
 
 
 class TestRequestWrapper(unittest.TestCase):

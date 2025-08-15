@@ -30,7 +30,7 @@ class HttpRequest:
         self.protocol_version = request_info.get("protocol_version", "")
         self.method = request_info.get("method", "")
         self.path = request_info.get("path", "")
-        self.query_params = request_info.get("query_params",{})
+        self.query_params = request_info.get("query_params", {})
         self.host = request_headers.get("host", "")
 
         self.headers = request_headers or {}
@@ -41,7 +41,6 @@ class HttpRequest:
         self.files = self.body.files
 
         self.context = {}
-        self.query = {}
 
     def set_context_key(self, key: str, value):
         self.context[key] = value

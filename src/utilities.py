@@ -3,6 +3,7 @@ import ssl as SSL
 import sys
 import threading as THREADING
 from typing import Callable
+from urllib.parse import urlparse
 
 import src.constants as CONSTANTS
 from src.constants import HttpMethods
@@ -97,6 +98,11 @@ def read_http_client_request(socket: SOCKET.socket):
         return None, f"{e}"
 
 
+def parse_route_path(path: str):
+    parsed = urlparse(url=path)
+    return parsed.path
+
+
 class WebServer:
     def __init__(self):
         self.middlewares = []
@@ -113,10 +119,13 @@ class WebServer:
         self.middlewares = [*self.middlewares, *middlewares]
 
     def route_http(self, path: str, handler: Callable | RequestHandler):
-        self.http_routes = [*self.http_routes, (path, handler)]
+        self.http_routes = [*self.http_routes, (parse_route_path(path=path), handler)]
 
     def route_websocket(self, path: str, handler: Callable | WebsocketHandler):
-        self.websocket_routes = [*self.websocket_routes, (path, handler)]
+        self.websocket_routes = [
+            *self.websocket_routes,
+            (parse_route_path(path=path), handler),
+        ]
 
     def clear_middlewares(self):
         self.middlewares = []

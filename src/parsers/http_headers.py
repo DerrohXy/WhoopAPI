@@ -1,5 +1,6 @@
 import re
-from urllib.parse import urlparse,parse_qs
+from urllib.parse import parse_qs, urlparse
+
 
 def strip_string(string: str):
     return string.strip()
@@ -67,7 +68,9 @@ def parse_headers(data: bytes):
         request_info["path"] = parsed_path.path
 
         query_params = parse_qs(parsed_path.query)
-        request_info["query_params"] = {k: v[0] if len(v) == 1 else v for k, v in query_params.items()}
+        request_info["query_params"] = {
+            k: v[0] if len(v) == 1 else v for k, v in query_params.items()
+        }
 
         split_version_info = strip_string(split_start_line[2]).split("/")
         request_info["protocol"] = strip_string(strip_string(split_version_info[0]))

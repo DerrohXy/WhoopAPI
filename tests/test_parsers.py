@@ -11,7 +11,7 @@ from src.parsers.http_body import (
     parse_multipart_enhanced,
     parse_multipart_with_regex,
 )
-from src.parsers.http_headers import parse_header_line
+from src.parsers.http_headers import parse_header_line, parse_headers
 
 
 class TestHeadersParser(unittest.TestCase):
@@ -90,7 +90,19 @@ class TestHeadersParser(unittest.TestCase):
             self.assertIsNotNone(parsed_item)
 
     def test_case2(self):
-        pass
+        example_header_data = (
+            "GET /api/users?id=123&name=John%20Doe HTTP/1.1\r\n"
+            "Host: example.com\r\n"
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n"
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\n"
+            "Accept-Language: en-US,en;q=0.5\r\n"
+            "Accept-Encoding: gzip, deflate, br\r\n"
+            "Connection: keep-alive\r\n"
+            "Cache-Control: max-age=0\r\n"
+        )
+        example_header_data = example_header_data.encode("utf-8")
+
+        parse_headers(data=example_header_data)
 
 
 class TestBodyParser(unittest.TestCase):

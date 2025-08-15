@@ -25,6 +25,10 @@ class RequestHandler:
         pass
 
 
+def path_matches_route(path: str, route: str):
+    return path.strip("/ ") == route.strip("/ ")
+
+
 def handle_http_client_request(
     request: HttpRequest,
     middlewares: list[Callable],
@@ -49,7 +53,7 @@ def handle_http_client_request(
         else:
             handler = handler_function()
 
-        if request.path == route:
+        if path_matches_route(path=request_path, route=route):
             handler.route = route
             try:
                 if request_method == CONSTANTS.HttpMethods.GET:
