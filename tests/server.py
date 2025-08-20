@@ -1,3 +1,4 @@
+import json
 import os.path
 
 from src import (
@@ -23,9 +24,6 @@ SSL_KEY_FILE = os.path.join(PRIVATE_DIR, "sslkey.key")
 class IndexHandler(RequestHandler):
     def get(self, request: HttpRequest):
         response = HttpResponse()
-        response.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
-        )
         response.set_json(
             {
                 "message": "This is the index page",
@@ -43,9 +41,6 @@ class IndexHandler(RequestHandler):
 class RandomHandler(RequestHandler):
     def get(self, request: HttpRequest):
         response = HttpResponse()
-        response.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
-        )
         response.set_json(
             {
                 "message": "This is the index page",
@@ -60,11 +55,41 @@ class RandomHandler(RequestHandler):
         return response
 
 
+class PostFormHandler(RequestHandler):
+    def post(self, request: HttpRequest):
+        response = HttpResponse()
+
+        result = {
+            "data": request.body.form_data,
+            "files": [k for k, v in (request.body.files or {}).items()],
+        }
+        print(result)
+
+        response.set_json(result)
+
+        return response
+
+
+class PostJsonHandler(RequestHandler):
+    def post(self, request: HttpRequest):
+        response = HttpResponse()
+
+        result = request.body.json
+        print(result)
+
+        response.set_json(result)
+
+        return response
+
+
 class WsHandler(WebsocketHandler):
     def on_message(self, message: bytes):
         # LOG("Message received")
         # LOG_PRETTY(message)
-        self.send(str(message, CONSTANTS.DEFAULT_STRING_ENCODING))
+        response = json.dumps(
+            {"received": str(message), "responding": "Random response"}
+        )
+        self.send(response)
 
     def on_error(self, exception):
         LOG_PRETTY(exception)
@@ -80,6 +105,8 @@ if __name__ == "__main__":
     http_routes = [
         ("/", IndexHandler),
         ("/random", RandomHandler),
+        ("/form", PostFormHandler),
+        ("/json", PostJsonHandler),
         ("/static", StaticFileHandler(directories=[STATIC_DIR])),
     ]
     websocket_routes = [

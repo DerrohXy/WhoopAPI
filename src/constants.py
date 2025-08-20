@@ -243,7 +243,7 @@ def get_http_status_code_message(code: int):
 
 
 def get_default_headers():
-    return {"Server": "WebFramework"}
+    return {"Server": "WhoopAPI"}
 
 
 def get_content_type_from_filename(filename: str):
