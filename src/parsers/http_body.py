@@ -220,6 +220,7 @@ def parse_body(headers: dict, header_params: dict, data: bytes):
     content_type = headers.get(
         CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
     )
+
     json_data = None
     form_data = None
     files = None

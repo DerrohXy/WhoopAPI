@@ -2,7 +2,6 @@ import json
 import os.path
 
 from src import (
-    CONSTANTS,
     LOG_ERROR,
     LOG_PRETTY,
     HttpRequest,
@@ -40,17 +39,14 @@ class IndexHandler(RequestHandler):
 
 class RandomHandler(RequestHandler):
     def get(self, request: HttpRequest):
-        response = HttpResponse()
-        response.set_json(
-            {
-                "message": "This is the index page",
-                "path": request.path,
-                "params": request.query_params,
-                "protocol": request.protocol,
-                "method": request.method,
-                "host": request.host,
-            }
-        )
+        response = {
+            "message": "This is the index page",
+            "path": request.path,
+            "params": request.query_params,
+            "protocol": request.protocol,
+            "method": request.method,
+            "host": request.host,
+        }
 
         return response
 
@@ -63,7 +59,6 @@ class PostFormHandler(RequestHandler):
             "data": request.body.form_data,
             "files": [k for k, v in (request.body.files or {}).items()],
         }
-        print(result)
 
         response.set_json(result)
 
@@ -72,22 +67,18 @@ class PostFormHandler(RequestHandler):
 
 class PostJsonHandler(RequestHandler):
     def post(self, request: HttpRequest):
-        response = HttpResponse()
-
-        result = request.body.json
-        print(result)
-
-        response.set_json(result)
+        response = request.body.json
 
         return response
 
 
 class WsHandler(WebsocketHandler):
     def on_message(self, message: bytes):
-        # LOG("Message received")
-        # LOG_PRETTY(message)
         response = json.dumps(
-            {"received": str(message), "responding": "Random response"}
+            {
+                "received": str(message),
+                "responding": f"Random response to {str(message)}",
+            }
         )
         self.send(response)
 

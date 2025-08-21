@@ -21,12 +21,17 @@ class RequestHandler:
     def put(self, request: HttpRequest) -> Optional[Any]:
         pass
 
+    def patch(self, request: HttpRequest) -> Optional[Any]:
+        pass
+
     def delete(self, request: HttpRequest) -> Optional[Any]:
         pass
 
 
 def path_matches_route(path: str, route: str):
-    return path.strip("/ ") == route.strip("/ ")
+    route_ = route.strip("/ ")
+    path_ = path.strip("/ ")
+    return path_.startswith(route_)
 
 
 def handle_http_client_request(
@@ -54,23 +59,24 @@ def handle_http_client_request(
             handler = handler_function()
 
         if path_matches_route(path=request_path, route=route):
+            handler_found = True
             handler.route = route
+
             try:
                 if request_method == CONSTANTS.HttpMethods.GET:
                     response = handler.get(request)
-                    handler_found = True
 
                 elif request_method == CONSTANTS.HttpMethods.POST:
                     response = handler.post(request)
-                    handler_found = True
 
                 elif request_method == CONSTANTS.HttpMethods.PUT:
                     response = handler.put(request)
-                    handler_found = True
+
+                elif request_method == CONSTANTS.HttpMethods.PATCH:
+                    response = handler.patch(request)
 
                 elif request_method == CONSTANTS.HttpMethods.DELETE:
                     response = handler.delete(request)
-                    handler_found = True
 
             except Exception as e:
                 LOG_ERROR(e)

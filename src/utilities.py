@@ -202,9 +202,17 @@ def handle_client_connection(
                     http_routes=server.http_routes,
                 )
 
-            result = handler_response.build(request_headers=request_headers)
-            socket.sendall(result)
-            socket.close()
+            if handler_response:
+                result = handler_response.build(request_headers=request_headers)
+                socket.sendall(result)
+                socket.close()
+
+            else:
+                try:
+                    socket.close()
+
+                except Exception as e:
+                    LOG_ERROR(e)
 
         else:
             socket.close()
@@ -213,7 +221,7 @@ def handle_client_connection(
 def start_web_server(
     bind_address: tuple[str, int],
     server: WebServer,
-    on_start: Callable,
+    on_start: Callable = None,
     ssl_cert_file: str = None,
     ssl_key_file: str = None,
 ):

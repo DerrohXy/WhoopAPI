@@ -145,8 +145,12 @@ class HttpResponse:
         request_headers: dict = None,
     ):
         accepted_compressions = request_headers.get(
-            CONSTANTS.HttpHeaders.ACCEPT_ENCODING, None
+            CONSTANTS.HttpHeaders.ACCEPT_ENCODING, ""
         )
+
+        # Disabling compression : SEEMS TO NOT WORK FOR NON GET REQUESTS
+        # accepted_compressions = None
+
         if accepted_compressions:
             if "gzip" in accepted_compressions:
                 self.set_header(CONSTANTS.HttpHeaders.CONTENT_ENCODING, "gzip")

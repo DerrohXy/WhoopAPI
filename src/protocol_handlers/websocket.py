@@ -2,7 +2,6 @@ import base64 as BASE64
 import hashlib as HASHLIB
 import socket as SOCKET
 import struct as STRUCT
-import threading as THREADING
 from typing import Callable
 
 import src.constants as CONSTANTS
@@ -163,12 +162,21 @@ class WebsocketHandler:
         pass
 
 
+def path_matches_route(path: str, route: str):
+    route_ = route.strip("/ ")
+    path_ = path.strip("/ ")
+    return path_.startswith(route_)
+
+
 def handle_websocket_client_request(
     socket: SOCKET.socket,
     request: HttpRequest,
     middlewares: list[Callable],
     websocket_routes: list[tuple[str, Callable | WebsocketHandler]],
 ):
+    request_path = request.path
+    handler_found = False
+
     for action in middlewares:
         action(request)
 
@@ -179,12 +187,15 @@ def handle_websocket_client_request(
         else:
             handler = handler_function()
 
-        if request.path == route:
+        if path_matches_route(path=request_path, route=route):
+            handler_found = True
             handler.route = route
             handler.set_socket(socket)
             handler.on_connect(request)
-            run_thread = THREADING.Thread(target=handler.run, args=(1000,))
-            run_thread.start()
+            handler.run(timeout=1000)
+
+    if not handler_found:
+        socket.close()
 
 
 def generate_websocket_accept_key(websocket_key: str):

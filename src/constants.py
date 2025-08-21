@@ -152,6 +152,7 @@ class HttpMethods:
     POST = "post"
     PUT = "put"
     DELETE = "delete"
+    PATCH = "patch"
 
 
 class HttpContentTypes:
