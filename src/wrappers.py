@@ -148,20 +148,24 @@ class HttpResponse:
             CONSTANTS.HttpHeaders.ACCEPT_ENCODING, ""
         )
 
-        # Disabling compression : SEEMS TO NOT WORK FOR NON GET REQUESTS
-        # accepted_compressions = None
-
         if accepted_compressions:
+            accepted_compressions = [
+                t.strip() for t in accepted_compressions.split(",")
+            ]
+
             if "gzip" in accepted_compressions:
                 self.set_header(CONSTANTS.HttpHeaders.CONTENT_ENCODING, "gzip")
+
                 return gzip.compress(self.body)
 
             elif "deflate" in accepted_compressions:
                 self.set_header(CONSTANTS.HttpHeaders.CONTENT_ENCODING, "deflate")
+
                 return zlib.compress(self.body)
 
             elif "br" in accepted_compressions:
                 self.set_header(CONSTANTS.HttpHeaders.CONTENT_ENCODING, "br")
+
                 return brotli.compress(self.body)
 
         return self.body
@@ -181,7 +185,7 @@ class HttpResponse:
         )
 
         result = b""
-        self.set_header(CONSTANTS.HttpHeaders.CONTENT_LENGTH, str(len(self.body)))
+        self.set_header(CONSTANTS.HttpHeaders.CONTENT_LENGTH, str(len(body)))
         result = result + self.build_headers()
         result = result + b"\r\n\r\n"
         result = result + body
