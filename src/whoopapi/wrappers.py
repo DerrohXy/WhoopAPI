@@ -5,8 +5,14 @@ from typing import Optional
 
 import brotli
 
-import src.constants as CONSTANTS
-from src.constants import get_content_type_from_filename
+from .constants import (
+    HttpContentTypes,
+    HttpHeaders,
+    HttpStatusCodes,
+    get_content_type_from_filename,
+    get_default_headers,
+    get_http_status_code_message,
+)
 
 
 class HttpRequestBody:
@@ -63,10 +69,10 @@ class HttpRequest:
 
 class HttpResponse:
     def __init__(self):
-        self.headers = CONSTANTS.get_default_headers()
+        self.headers = get_default_headers()
         self.body = b""
         self.http_version = "HTTP/1.1"
-        self.status_code = CONSTANTS.HttpStatusCodes.C_200
+        self.status_code = HttpStatusCodes.C_200
         self.DEFAULT_ENCODING = "utf-8"
 
     def set_http_version(self, version: str):
@@ -81,7 +87,7 @@ class HttpResponse:
             self.status_code = f"{code}"
 
         else:
-            self.status_code = f"{code} {CONSTANTS.get_http_status_code_message(code)}"
+            self.status_code = f"{code} {get_http_status_code_message(code)}"
 
         return self
 
@@ -97,8 +103,8 @@ class HttpResponse:
 
     def set_json(self, data: dict | list):
         self.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_TYPE,
-            CONSTANTS.HttpContentTypes.APPLICATION_JSON,
+            HttpHeaders.CONTENT_TYPE,
+            HttpContentTypes.APPLICATION_JSON,
         )
         self.body = bytes(JSON.dumps(data), self.DEFAULT_ENCODING)
 
@@ -113,20 +119,18 @@ class HttpResponse:
 
     def set_html(self, html: str):
         self.set_body(html)
-        self.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_HTML
-        )
+        self.set_header(HttpHeaders.CONTENT_TYPE, HttpContentTypes.TEXT_HTML)
 
         return self
 
     def set_file(self, filename: str, data: bytes, as_attachment: bool = True):
         self.set_body(data)
         self.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_DISPOSITION,
+            HttpHeaders.CONTENT_DISPOSITION,
             f"{'attachment' if as_attachment else 'inline'} filename={filename}",
         )
         self.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_TYPE,
+            HttpHeaders.CONTENT_TYPE,
             f"{get_content_type_from_filename(filename)}",
         )
 
@@ -134,9 +138,7 @@ class HttpResponse:
 
     def set_text(self, text: str):
         self.set_body(text)
-        self.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
-        )
+        self.set_header(HttpHeaders.CONTENT_TYPE, HttpContentTypes.TEXT_PLAIN)
 
         return self
 
@@ -144,9 +146,7 @@ class HttpResponse:
         self,
         request_headers: dict = None,
     ):
-        accepted_compressions = request_headers.get(
-            CONSTANTS.HttpHeaders.ACCEPT_ENCODING, ""
-        )
+        accepted_compressions = request_headers.get(HttpHeaders.ACCEPT_ENCODING, "")
 
         if accepted_compressions:
             accepted_compressions = [
@@ -154,17 +154,17 @@ class HttpResponse:
             ]
 
             if "gzip" in accepted_compressions:
-                self.set_header(CONSTANTS.HttpHeaders.CONTENT_ENCODING, "gzip")
+                self.set_header(HttpHeaders.CONTENT_ENCODING, "gzip")
 
                 return gzip.compress(self.body)
 
             elif "deflate" in accepted_compressions:
-                self.set_header(CONSTANTS.HttpHeaders.CONTENT_ENCODING, "deflate")
+                self.set_header(HttpHeaders.CONTENT_ENCODING, "deflate")
 
                 return zlib.compress(self.body)
 
             elif "br" in accepted_compressions:
-                self.set_header(CONSTANTS.HttpHeaders.CONTENT_ENCODING, "br")
+                self.set_header(HttpHeaders.CONTENT_ENCODING, "br")
 
                 return brotli.compress(self.body)
 
@@ -185,7 +185,7 @@ class HttpResponse:
         )
 
         result = b""
-        self.set_header(CONSTANTS.HttpHeaders.CONTENT_LENGTH, str(len(body)))
+        self.set_header(HttpHeaders.CONTENT_LENGTH, str(len(body)))
         result = result + self.build_headers()
         result = result + b"\r\n\r\n"
         result = result + body

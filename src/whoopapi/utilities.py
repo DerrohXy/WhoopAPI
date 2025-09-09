@@ -2,21 +2,20 @@ import socket as SOCKET
 import ssl as SSL
 import sys
 import threading as THREADING
-from typing import Callable
+from typing import Callable, List
 from urllib.parse import urlparse
 
-import src.constants as CONSTANTS
-from src.constants import HttpMethods
-from src.logging import LOG_ERROR, LOG_PRETTY
-from src.parsers.http_body import parse_body
-from src.parsers.http_headers import parse_headers
-from src.protocol_handlers.http import RequestHandler, handle_http_client_request
-from src.protocol_handlers.websocket import (
+from .constants import HttpHeaders, HttpMethods, WebProtocols
+from .logging import LOG_ERROR, LOG_PRETTY
+from .parsers.http_body import parse_body
+from .parsers.http_headers import parse_headers
+from .protocol_handlers.http import RequestHandler, handle_http_client_request
+from .protocol_handlers.websocket import (
     WebsocketHandler,
     handle_websocket_client_request,
     perform_websocket_handshake,
 )
-from src.wrappers import HttpRequest
+from .wrappers import HttpRequest
 
 
 def read_http_client_request_body(socket: SOCKET.socket, body_size: int):
@@ -80,7 +79,7 @@ def read_http_client_request(socket: SOCKET.socket):
             body_size = 0
 
         else:
-            body_size = int(headers.get(CONSTANTS.HttpHeaders.CONTENT_LENGTH, -1))
+            body_size = int(headers.get(HttpHeaders.CONTENT_LENGTH, -1))
 
         body_data = read_http_client_request_body(socket, body_size)
         parsed_body = parse_body(headers, header_params, body_data)
@@ -103,7 +102,7 @@ def parse_route_path(path: str):
     return parsed.path
 
 
-class WebServer:
+class Application:
     def __init__(self):
         self.middlewares = []
         self.http_routes = []
@@ -118,14 +117,43 @@ class WebServer:
     def add_middleware(self, *middlewares: Callable):
         self.middlewares = [*self.middlewares, *middlewares]
 
-    def route_http(self, path: str, handler: Callable | RequestHandler):
+    def route_http(self, handler: Callable | RequestHandler, path: str):
         self.http_routes = [*self.http_routes, (parse_route_path(path=path), handler)]
 
-    def route_websocket(self, path: str, handler: Callable | WebsocketHandler):
+    def route_websocket(self, handler: Callable | WebsocketHandler, path: str):
         self.websocket_routes = [
             *self.websocket_routes,
             (parse_route_path(path=path), handler),
         ]
+
+    def route(self, path: str, methods: List[str] = None):
+        def wrapper_(handler_: Callable):
+            if methods:
+
+                def wrapped_handler_(request_: HttpRequest):
+                    if request_.method.upper() in methods:
+                        return handler_(request_)
+
+                    return None
+
+                self.route_http(handler=wrapped_handler_, path=path)
+
+                return wrapped_handler_
+
+            else:
+                self.route_http(handler=handler_, path=path)
+
+                return handler_
+
+        return wrapper_
+
+    def route_ws(self, path: str):
+        def wrapper_(handler_: Callable | WebsocketHandler):
+            self.route_websocket(handler=handler_, path=path)
+
+            return handler_
+
+        return wrapper_
 
     def clear_middlewares(self):
         self.middlewares = []
@@ -144,9 +172,9 @@ class WebServer:
     def listen(self, port: int | str = 8000, on_start: Callable = None):
         bind_address = ("", int(port))
 
-        start_web_server(
+        start_application(
             bind_address=bind_address,
-            server=self,
+            application=self,
             on_start=on_start,
             ssl_cert_file=self.ssl_cert_file,
             ssl_key_file=self.ssl_key_file,
@@ -155,7 +183,7 @@ class WebServer:
 
 def handle_client_connection(
     socket: SOCKET.socket,
-    server: WebServer,
+    application: Application,
 ):
     http_request, error = read_http_client_request(socket)
     if error:
@@ -166,13 +194,13 @@ def handle_client_connection(
         request_protocol = http_request.protocol.lower()
 
         if request_protocol.lower() in [
-            CONSTANTS.WebProtocols.HTTP,
-            CONSTANTS.WebProtocols.HTTPS,
+            WebProtocols.HTTP,
+            WebProtocols.HTTPS,
         ]:
             request_headers = http_request.headers
 
-            connection = request_headers.get(CONSTANTS.HttpHeaders.CONNECTION, "")
-            upgrade = request_headers.get(CONSTANTS.HttpHeaders.UPGRADE, "")
+            connection = request_headers.get(HttpHeaders.CONNECTION, "")
+            upgrade = request_headers.get(HttpHeaders.UPGRADE, "")
 
             handler_response = None
             if connection and connection.lower() == "upgrade":
@@ -184,22 +212,22 @@ def handle_client_connection(
                         handle_websocket_client_request(
                             socket=socket,
                             request=http_request,
-                            middlewares=server.middlewares,
-                            websocket_routes=server.websocket_routes,
+                            middlewares=application.middlewares,
+                            websocket_routes=application.websocket_routes,
                         )
 
                     else:
                         handler_response = handle_http_client_request(
                             request=http_request,
-                            middlewares=server.middlewares,
-                            http_routes=server.http_routes,
+                            middlewares=application.middlewares,
+                            http_routes=application.http_routes,
                         )
 
             else:
                 handler_response = handle_http_client_request(
                     request=http_request,
-                    middlewares=server.middlewares,
-                    http_routes=server.http_routes,
+                    middlewares=application.middlewares,
+                    http_routes=application.http_routes,
                 )
 
             if handler_response:
@@ -218,15 +246,15 @@ def handle_client_connection(
             socket.close()
 
 
-def start_web_server(
+def start_application(
     bind_address: tuple[str, int],
-    server: WebServer,
+    application: Application,
     on_start: Callable = None,
     ssl_cert_file: str = None,
     ssl_key_file: str = None,
 ):
-    server.http_routes.sort(key=lambda x: len(x[0]), reverse=True)
-    server.websocket_routes.sort(key=lambda x: len(x[0]), reverse=True)
+    application.http_routes.sort(key=lambda x: len(x[0]), reverse=True)
+    application.websocket_routes.sort(key=lambda x: len(x[0]), reverse=True)
 
     server_socket = SOCKET.socket(SOCKET.AF_INET, SOCKET.SOCK_STREAM)
     server_socket.bind(bind_address)
@@ -253,7 +281,7 @@ def start_web_server(
         try:
             client_thread = THREADING.Thread(
                 target=handle_client_connection,
-                args=(client_socket, server),
+                args=(client_socket, application),
             )
             client_thread.start()
 

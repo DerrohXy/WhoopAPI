@@ -5,13 +5,13 @@ import zlib
 
 import brotli
 
-from src.parsers.http_body import (
+from src.whoopapi.parsers.http_body import (
     handle_compression,
     parse_body,
     parse_multipart_enhanced,
     parse_multipart_with_regex,
 )
-from src.parsers.http_headers import parse_header_line, parse_headers
+from src.whoopapi.parsers.http_headers import parse_header_line, parse_headers
 
 
 class TestHeadersParser(unittest.TestCase):

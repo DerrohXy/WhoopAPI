@@ -7,7 +7,7 @@ from email.policy import HTTP
 
 import brotli
 
-import src.constants as CONSTANTS
+from ..constants import HttpContentTypes, HttpHeaders
 
 
 def parse_multipart_with_regex(boundary: str, body: bytes, charset: str = "utf-8"):
@@ -217,9 +217,7 @@ def handle_compression(headers: dict, body: bytes) -> tuple[dict, bytes]:
 def parse_body(headers: dict, header_params: dict, data: bytes):
     headers, data = handle_compression(headers=headers, body=data)
 
-    content_type = headers.get(
-        CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
-    )
+    content_type = headers.get(HttpHeaders.CONTENT_TYPE, HttpContentTypes.TEXT_PLAIN)
 
     json_data = None
     form_data = None
@@ -227,18 +225,16 @@ def parse_body(headers: dict, header_params: dict, data: bytes):
     text = None
 
     if content_type in [
-        CONSTANTS.HttpContentTypes.TEXT_PLAIN,
-        CONSTANTS.HttpContentTypes.TEXT_HTML,
+        HttpContentTypes.TEXT_PLAIN,
+        HttpContentTypes.TEXT_HTML,
     ]:
         text = data.decode(encoding="utf8")
 
-    if content_type == CONSTANTS.HttpContentTypes.APPLICATION_JSON:
+    if content_type == HttpContentTypes.APPLICATION_JSON:
         json_data = parse_json(content_type=content_type, data=data)
 
-    elif content_type == CONSTANTS.HttpContentTypes.MULTIPART_FORM_DATA:
-        boundary = header_params.get(CONSTANTS.HttpHeaders.CONTENT_TYPE, {}).get(
-            "boundary", ""
-        )
+    elif content_type == HttpContentTypes.MULTIPART_FORM_DATA:
+        boundary = header_params.get(HttpHeaders.CONTENT_TYPE, {}).get("boundary", "")
         if not boundary:
             raise Exception("Invalid multipart boundary.")
 

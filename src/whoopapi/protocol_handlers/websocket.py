@@ -1,12 +1,18 @@
 import base64 as BASE64
 import hashlib as HASHLIB
+import inspect
 import socket as SOCKET
 import struct as STRUCT
 from typing import Callable
 
-import src.constants as CONSTANTS
-from src.logging import LOG_INFO
-from src.wrappers import HttpRequest, HttpResponse
+from ..constants import (
+    DEFAULT_STRING_ENCODING,
+    WEBSOCKET_ACCEPT_SUFFIX,
+    HttpHeaders,
+    HttpStatusCodes,
+)
+from ..logging import LOG_INFO
+from ..wrappers import HttpRequest, HttpResponse
 
 
 def mask_data(mask: bytes, data: bytes):
@@ -43,7 +49,7 @@ def send_websocket_message(socket: SOCKET.socket, message: bytes | str):
     for payload_index in range(0, len(payloads)):
         payload = payloads[payload_index]
         if isinstance(payload, str):
-            payload = bytes(payload, CONSTANTS.DEFAULT_STRING_ENCODING)
+            payload = bytes(payload, DEFAULT_STRING_ENCODING)
         # payload=mask_data(mask,payload)
         fin_bit = 0x8000 if payload_index >= len(payloads) - 1 else 0x0000
         rsv_bits = 0x0000
@@ -184,8 +190,15 @@ def handle_websocket_client_request(
         if isinstance(handler_function, WebsocketHandler):
             handler = handler_function
 
-        else:
+        elif inspect.isclass(handler_function) and issubclass(
+            handler_function, WebsocketHandler
+        ):
             handler = handler_function()
+
+        else:
+            raise Exception(
+                "Invalid websocket handler. Must be Class_(WebsocketHandler), or instance of."
+            )
 
         if path_matches_route(path=request_path, route=route):
             handler_found = True
@@ -199,7 +212,7 @@ def handle_websocket_client_request(
 
 
 def generate_websocket_accept_key(websocket_key: str):
-    accept_key = f"{websocket_key}{CONSTANTS.WEBSOCKET_ACCEPT_SUFFIX}"
+    accept_key = f"{websocket_key}{WEBSOCKET_ACCEPT_SUFFIX}"
     accept_key = HASHLIB.sha1(accept_key.encode()).digest()
     accept_key = BASE64.b64encode(accept_key).decode("utf-8")
 
@@ -207,16 +220,16 @@ def generate_websocket_accept_key(websocket_key: str):
 
 
 def perform_websocket_handshake(socket: SOCKET.socket, headers: dict):
-    websocket_key = headers.get(CONSTANTS.HttpHeaders.SEC_WEBSOCKET_KEY, "")
+    websocket_key = headers.get(HttpHeaders.SEC_WEBSOCKET_KEY, "")
     # websocket_version = headers.get(CONSTANTS.HttpHeaders.SEC_WEBSOCKET_VERSION, 13)
 
     if websocket_key:
         accept_key = generate_websocket_accept_key(websocket_key)
         response = HttpResponse()
-        response.set_header(CONSTANTS.HttpHeaders.CONNECTION, "Upgrade")
-        response.set_header(CONSTANTS.HttpHeaders.UPGRADE, "websocket")
-        response.set_header(CONSTANTS.HttpHeaders.SEC_WEBSOCKET_ACCEPT, accept_key)
-        response.set_status_code(CONSTANTS.HttpStatusCodes.C_101)
+        response.set_header(HttpHeaders.CONNECTION, "Upgrade")
+        response.set_header(HttpHeaders.UPGRADE, "websocket")
+        response.set_header(HttpHeaders.SEC_WEBSOCKET_ACCEPT, accept_key)
+        response.set_status_code(HttpStatusCodes.C_101)
         result = response.build()
         socket.sendall(result)
 

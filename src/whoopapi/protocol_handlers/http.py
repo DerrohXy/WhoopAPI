@@ -1,16 +1,30 @@
+import inspect
 import os
 from typing import Any, Callable, Optional
 
-import src.constants as CONSTANTS
-from src import LOG_ERROR
-from src.logging import LOG_INFO
-from src.responses import DEFAULT_404_PAGE
-from src.wrappers import HttpRequest, HttpResponse
+from ..constants import HttpContentTypes, HttpHeaders, HttpStatusCodes
+from ..logging import LOG_ERROR, LOG_INFO
+from ..responses import DEFAULT_404_PAGE
+from ..wrappers import HttpRequest, HttpResponse
 
 
 class RequestHandler:
     def __init__(self):
         self.route = ""
+
+    def get_handler_for_method_(self, method: str) -> Callable[[HttpRequest], Any]:
+        handler_ = {
+            "get": self.get,
+            "post": self.post,
+            "put": self.put,
+            "patch": self.patch,
+            "delete": self.delete,
+        }.get(method, None)
+
+        if not handler_:
+            raise Exception(f"Unable to get handler for method : {method}.")
+
+        return handler_
 
     def get(self, request: HttpRequest) -> Optional[Any]:
         pass
@@ -48,40 +62,42 @@ def handle_http_client_request(
     request_method = request.method.lower()
     request_path = request.path
     request_protocol = request.protocol
-    response_code = CONSTANTS.HttpStatusCodes.C_200
+    response_code = HttpStatusCodes.C_200
 
     handler_found = False
     for route, handler_function in http_routes:
         if isinstance(handler_function, RequestHandler):
             handler = handler_function
+            handler.route = route
+            handler_function_ = handler_function.get_handler_for_method_(
+                method=request_method
+            )
+
+        elif inspect.isclass(handler_function) and issubclass(
+            handler_function, RequestHandler
+        ):
+            handler = handler_function()
+            handler.route = route
+            handler_function_ = handler.get_handler_for_method_(method=request_method)
+
+        elif inspect.isfunction(handler_function):
+            handler_function_ = handler_function
 
         else:
-            handler = handler_function()
+            raise Exception(
+                "Invalid websocket handler. Must be Class_(RequestHandler), or instance of."
+            )
 
         if path_matches_route(path=request_path, route=route):
             handler_found = True
-            handler.route = route
 
             try:
-                if request_method == CONSTANTS.HttpMethods.GET:
-                    response = handler.get(request)
-
-                elif request_method == CONSTANTS.HttpMethods.POST:
-                    response = handler.post(request)
-
-                elif request_method == CONSTANTS.HttpMethods.PUT:
-                    response = handler.put(request)
-
-                elif request_method == CONSTANTS.HttpMethods.PATCH:
-                    response = handler.patch(request)
-
-                elif request_method == CONSTANTS.HttpMethods.DELETE:
-                    response = handler.delete(request)
+                response = handler_function_(request)
 
             except Exception as e:
                 LOG_ERROR(e)
                 response = HttpResponse()
-                response.set_status_code(CONSTANTS.HttpStatusCodes.C_500)
+                response.set_status_code(HttpStatusCodes.C_500)
                 response.set_html(DEFAULT_404_PAGE)
                 response_code = response.status_code
 
@@ -93,9 +109,7 @@ def handle_http_client_request(
 
     elif isinstance(response, str):
         text_response = HttpResponse()
-        text_response.set_header(
-            CONSTANTS.HttpHeaders.CONTENT_TYPE, CONSTANTS.HttpContentTypes.TEXT_PLAIN
-        )
+        text_response.set_header(HttpHeaders.CONTENT_TYPE, HttpContentTypes.TEXT_PLAIN)
         text_response.set_body(response)
         wrapped_response = text_response
 
@@ -106,7 +120,7 @@ def handle_http_client_request(
 
     elif (not handler_found) or (not response):
         response = HttpResponse()
-        response.set_status_code(CONSTANTS.HttpStatusCodes.C_404)
+        response.set_status_code(HttpStatusCodes.C_404)
         response.set_html(DEFAULT_404_PAGE)
         response_code = response.status_code
         wrapped_response = response
@@ -125,6 +139,7 @@ class StaticFileHandler(RequestHandler):
 
     def get_file_path(self, path: str):
         file_path = path[len(self.route) + 1 :]
+
         for directory in self.directories:
             file_path = os.path.join(directory, file_path)
             if os.path.exists(file_path):

@@ -1,14 +1,13 @@
 import json
 import os.path
 
-from src import (
+from src.whoopapi import (
     LOG_ERROR,
     LOG_PRETTY,
+    Application,
     HttpRequest,
     HttpResponse,
-    RequestHandler,
     StaticFileHandler,
-    WebServer,
     WebsocketHandler,
 )
 
@@ -20,26 +19,10 @@ SSL_CERT_FILE = os.path.join(PRIVATE_DIR, "sslcertificate.crt")
 SSL_KEY_FILE = os.path.join(PRIVATE_DIR, "sslkey.key")
 
 
-class IndexHandler(RequestHandler):
-    def get(self, request: HttpRequest):
-        response = HttpResponse()
-        response.set_json(
-            {
-                "message": "This is the index page",
-                "path": request.path,
-                "params": request.query_params,
-                "protocol": request.protocol,
-                "method": request.method,
-                "host": request.host,
-            }
-        )
-
-        return response
-
-
-class RandomHandler(RequestHandler):
-    def get(self, request: HttpRequest):
-        response = {
+def IndexHandler(request: HttpRequest):
+    response = HttpResponse()
+    response.set_json(
+        {
             "message": "This is the index page",
             "path": request.path,
             "params": request.query_params,
@@ -47,29 +30,41 @@ class RandomHandler(RequestHandler):
             "method": request.method,
             "host": request.host,
         }
+    )
 
-        return response
-
-
-class PostFormHandler(RequestHandler):
-    def post(self, request: HttpRequest):
-        response = HttpResponse()
-
-        result = {
-            "data": request.body.form_data,
-            "files": [k for k, v in (request.body.files or {}).items()],
-        }
-
-        response.set_json(result)
-
-        return response
+    return response
 
 
-class PostJsonHandler(RequestHandler):
-    def post(self, request: HttpRequest):
-        response = request.body.json
+def RandomHandler(request: HttpRequest):
+    response = {
+        "message": "This is the index page",
+        "path": request.path,
+        "params": request.query_params,
+        "protocol": request.protocol,
+        "method": request.method,
+        "host": request.host,
+    }
 
-        return response
+    return response
+
+
+def PostFormHandler(request: HttpRequest):
+    response = HttpResponse()
+
+    result = {
+        "data": request.body.form_data,
+        "files": [k for k, v in (request.body.files or {}).items()],
+    }
+
+    response.set_json(result)
+
+    return response
+
+
+def PostJsonHandler(request: HttpRequest):
+    response = request.body.json
+
+    return response
 
 
 class WsHandler(WebsocketHandler):
@@ -108,18 +103,18 @@ if __name__ == "__main__":
         lambda x: x.set_context_key("key1", "value1"),
         lambda x: x.set_context_key("key2", "value2"),
     ]
-    web_server = WebServer()
-    # web_server.set_ssl(SSL_CERT_FILE,SSL_KEY_FILE)
+    application = Application()
+    # application.set_ssl(SSL_CERT_FILE,SSL_KEY_FILE)
 
     for action in middlewares:
-        web_server.add_middleware(action)
+        application.add_middleware(action)
 
     for path, handler in http_routes:
-        web_server.route_http(path, handler)
+        application.route_http(handler, path)
 
     for path, handler in websocket_routes:
-        web_server.route_websocket(path, handler)
+        application.route_websocket(handler, path)
 
-    web_server.listen(
+    application.listen(
         on_start=lambda x: LOG_ERROR(f"Testing server running on port {x[1]}")
     )
