@@ -1,0 +1,23 @@
+[project]
+name = "whoopapi"
+version = "0.0.1"
+authors = [
+  { name="Derrick Wafula", email="derrickwafula@gmail.com" },
+]
+description = "A lightweight web API framework."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "brotli>=1.1.0"
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/DerrohXy/WhoopAPI"
+Issues = "https://github.com/DerrohXy/WhoopAPI/issues"

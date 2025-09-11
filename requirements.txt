@@ -2,3 +2,5 @@ brotli
 black
 isort
 flake8
+twine
+build
