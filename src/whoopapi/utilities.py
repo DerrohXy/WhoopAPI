@@ -1,7 +1,7 @@
 import socket as SOCKET
 import ssl as SSL
 import sys
-import threading as THREADING
+from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, List
 from urllib.parse import urlparse
 
@@ -253,6 +253,8 @@ def start_application(
     ssl_cert_file: str = None,
     ssl_key_file: str = None,
 ):
+    handler_executor = ThreadPoolExecutor(max_workers=1000)
+
     application.http_routes.sort(key=lambda x: len(x[0]), reverse=True)
     application.websocket_routes.sort(key=lambda x: len(x[0]), reverse=True)
 
@@ -279,11 +281,9 @@ def start_application(
                 LOG_PRETTY(e)
 
         try:
-            client_thread = THREADING.Thread(
-                target=handle_client_connection,
-                args=(client_socket, application),
+            handler_executor.submit(
+                handle_client_connection, socket=client_socket, application=application
             )
-            client_thread.start()
 
         except Exception as e:
             LOG_PRETTY(e)

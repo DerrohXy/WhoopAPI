@@ -73,6 +73,9 @@ class HttpResponse:
         self.body = b""
         self.http_version = "HTTP/1.1"
         self.status_code = HttpStatusCodes.C_200
+
+        self.cookies = []
+
         self.DEFAULT_ENCODING = "utf-8"
 
     def set_http_version(self, version: str):
@@ -142,6 +145,28 @@ class HttpResponse:
 
         return self
 
+    def set_cookie(
+        self,
+        name: str,
+        value: str,
+        path: str = None,
+        http_only: bool = None,
+        secure: bool = None,
+        same_site: str = None,
+        max_age: int = None,
+    ):
+        self.cookies.append(
+            {
+                "Name": name,
+                "Value": value,
+                "Path": path,
+                "HttpOnly": http_only,
+                "SameSite": same_site,
+                "Secure": secure,
+                "MaxAge": max_age,
+            }
+        )
+
     def build_client_supported_compressions(
         self,
         request_headers: dict = None,
@@ -175,6 +200,10 @@ class HttpResponse:
         for key, value in self.headers.items():
             items.append(f"{key}: {value}")
 
+        if self.cookies:
+            for cookie_ in self.cookies:
+                items.append(_format_cookie_header_(cookie=cookie_))
+
         return bytes("\r\n".join(items), self.DEFAULT_ENCODING)
 
     def build(self, request_headers: dict = None):
@@ -191,3 +220,26 @@ class HttpResponse:
         result = result + body
 
         return result
+
+
+def _format_cookie_header_(cookie: dict):
+    entries_ = [f"{cookie['Name']}={cookie['Value']}"]
+    if cookie["Path"]:
+        entries_.append(f"Path={cookie['Path']}")
+
+    if cookie["HttpOnly"]:
+        entries_.append("HttpOnly")
+
+    if cookie["Secure"]:
+        entries_.append("Secure")
+
+    if cookie["SameSite"]:
+        entries_.append("SameSite")
+
+    if cookie["MaxAge"]:
+        entries_.append(f"Max-Age={cookie['MaxAge']}")
+
+    if cookie["SameSite"]:
+        entries_.append(f"SameSite={cookie['SameSite']}")
+
+    return HttpHeaders.SET_COOKIE + ": " + "; ".join(entries_).strip()
