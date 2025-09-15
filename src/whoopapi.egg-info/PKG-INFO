@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: whoopapi
-Version: 0.0.1
+Version: 0.0.2
 Summary: A lightweight web API framework.
 Author-email: Derrick Wafula <derrickwafula@gmail.com>
 License-Expression: MIT
