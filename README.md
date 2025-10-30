@@ -24,6 +24,28 @@ def index(request:HttpRequest):
     return response
 
 
+application.route("/html-page", methods=["GET"])
+def html_page(request:HttpRequest):
+    response = HttpResponse()
+    
+    page="""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Project Management</title>
+        <script src="/static/bundle.js" defer></script>
+    </head>
+    <body>
+        <div id="root"></div>
+        </body>
+    </html>
+    """
+    
+    response.set_html(page)
+
+    return response
+
+
 @application.route("/random",methods=["GET","POST"])
 def random(request:HttpRequest):
     response = HttpResponse()

@@ -1,7 +1,8 @@
 import gzip
 import json as JSON
 import zlib
-from typing import Optional
+from io import BufferedReader, BytesIO
+from typing import Optional, Union
 
 import brotli
 
@@ -13,6 +14,8 @@ from .constants import (
     get_default_headers,
     get_http_status_code_message,
 )
+
+READABLE = Union[BytesIO, BufferedReader]
 
 
 class HttpRequestBody:
@@ -126,8 +129,16 @@ class HttpResponse:
 
         return self
 
-    def set_file(self, filename: str, data: bytes, as_attachment: bool = True):
-        self.set_body(data)
+    def set_file(
+        self, filename: str, data: Union[bytes, READABLE], as_attachment: bool = True
+    ):
+        if isinstance(data, BytesIO) or isinstance(data, BufferedReader):
+            data_ = data.read()
+
+        else:
+            data_ = data
+
+        self.set_body(data_)
         self.set_header(
             HttpHeaders.CONTENT_DISPOSITION,
             f"{'attachment' if as_attachment else 'inline'} filename={filename}",
